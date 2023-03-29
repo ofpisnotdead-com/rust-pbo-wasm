@@ -1,6 +1,7 @@
 use std::env;
 use std::fs::File;
 use std::io::{self, prelude::*, BufReader};
+use std::collections::HashMap;
 
 // ineffective custom read_until, since it is not available in wasm env
 fn read_until_exact(reader: &mut impl Read, delim: u8, buf: &mut Vec<u8>) -> io::Result<usize> {
@@ -90,18 +91,31 @@ fn main() -> io::Result<()> {
     let mut reader = BufReader::new(file);
 
     let mut entries = Vec::new();
+    let mut headers = HashMap::new();
 
     loop {
         let entry = read_pbo_entry(&mut reader).unwrap();
         if entry.filename == "" {
-            break;
+            if entry.packaging_method == "sreV" {
+                loop {
+                    let key = read_stringz(&mut reader).unwrap();
+                    if key == ""  {
+                        break;
+                    }
+                    let value = read_stringz(&mut reader).unwrap();
+                    headers.insert(key, value);
+                }
+            } else {
+                break;
+            }
         } else {
             entries.push(entry);
         }
     }
 
+    println!("Headers: {:#?}", headers);
     for entry in entries.iter() {
-        println!("Entry: {:#?}", entry);
+        println!("{:#?}", entry);
     }
 
     Ok(())

@@ -3,9 +3,9 @@ declare namespace wasm_bindgen {
 	/* eslint-disable */
 	/**
 	* @param {File} file
-	* @returns {Array<any>}
+	* @returns {any}
 	*/
-	export function read_pbo_entries(file: File): Array<any>;
+	export function read_pbo_entries(file: File): any;
 	
 }
 

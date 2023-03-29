@@ -1,8 +1,8 @@
 use std::io::{Read};
 use std::io::{self};
+use std::collections::HashMap;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen_file_reader::WebSysFile;
-use js_sys::Array;
 use serde::{Serialize, Deserialize};
 
 fn read_until_exact(reader: &mut impl Read, delim: u8, buf: &mut Vec<u8>) -> io::Result<usize> {
@@ -66,6 +66,12 @@ struct PboEntry {
     data_size: u32
 }
 
+#[derive(Serialize, Deserialize, Debug)]
+struct Pbo {
+    headers: HashMap<String, String>,
+    entries: Vec<PboEntry>
+}
+
 fn read_pbo_entry(reader: &mut impl Read) -> io::Result<PboEntry> {
     let filename = read_stringz(reader).unwrap();
     let packaging_method = read_string(reader, 4).unwrap();
@@ -87,23 +93,35 @@ fn read_pbo_entry(reader: &mut impl Read) -> io::Result<PboEntry> {
 }
 
 #[wasm_bindgen]
-pub fn read_pbo_entries(file: web_sys::File) -> Array {
+pub fn read_pbo_entries(file: web_sys::File) -> JsValue {
     let mut wf = WebSysFile::new(file);
     let mut entries = Vec::new();
+    let mut headers = HashMap::new();
 
     loop {
         let entry = read_pbo_entry(&mut wf).unwrap();
         if entry.filename == "" {
-            break;
+            if entry.packaging_method == "sreV" {
+                loop {
+                    let key = read_stringz(&mut wf).unwrap();
+                    if key == ""  {
+                        break;
+                    }
+                    let value = read_stringz(&mut wf).unwrap();
+                    headers.insert(key, value);
+                }
+            } else {
+                break;
+            }
         } else {
             entries.push(entry);
         }
     }
 
-    let arr = Array::new_with_length(entries.len() as u32);
-    for (i, entry) in entries.iter().enumerate() {
-        arr.set(i as u32, serde_wasm_bindgen::to_value(entry).unwrap())
-    }
+    let pbo = Pbo {
+        headers: headers,
+        entries: entries
+    };
 
-    arr
+    return serde_wasm_bindgen::to_value(&pbo).unwrap();
 }

@@ -13,12 +13,23 @@ async function run_wasm() {
         let el = document.getElementById('content');
         el.innerHTML = '';
 
+        if(e.data.headers.size > 0) {
+          let info = document.createElement('h2');
+          info.innerText = `headers in ${file.name}`;
+          let text = document.createElement('p');
+          let headersText = '';
+          e.data.headers.forEach((v,k) => headersText = headersText + `${k}: ${v}\n`)
+          text.innerText = headersText;
+          el.appendChild(info);
+          el.appendChild(text);
+        }
+
         let info = document.createElement('h2');
         info.innerText = `files in ${file.name}:`;
         el.appendChild(info);
 
         let list = document.createElement('ul');
-        e.data.forEach(pboEntry => {
+        e.data.entries.forEach(pboEntry => {
           let entry = document.createElement('li');
           let metadata = document.createElement('ul');
 
